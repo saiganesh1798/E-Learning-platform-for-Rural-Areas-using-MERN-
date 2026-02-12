@@ -1,0 +1,2 @@
+# E-Learning-platform-for-Rural-Areas-using-MERN-
+E-Learning Platform for Rural Areas is a full-stack web application built with the MERN stack (MongoDB, Express.js, React.js, Node.js). It aims to provide accessible, user-friendly online education tailored for learners in rural regions with limited resources and connectivity. This project focuses on simplicity, performance,support remote learners.
