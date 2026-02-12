@@ -1,6 +1,7 @@
 # Rural eLearning Platform
 
-A MERN stack eLearning platform designed for rural areas, featuring role-based access (Admin, Teacher, Student), course management, and quizzes.
+A MERN stack eLearning platform designed for rural areas, featuring role-based access (Admin, Teacher, Student), course management, and quizzes.  
+It aims to provide accessible, user-friendly online education tailored for learners in rural regions with limited resources and connectivity.
 
 ## Prerequisites
 - Node.js (v14+)
@@ -50,6 +51,4 @@ The client will run on `http://localhost:5173`.
 - **Lessons**: Video (YouTube) and Document (PDF) support.
 - **Quizzes**: Teachers create quizzes; Students take them and get scores.
 - **Admin**: Dashboard to manage users and view analytics.
-*****
-**********
-++++++++++++++++++++++++++
+
