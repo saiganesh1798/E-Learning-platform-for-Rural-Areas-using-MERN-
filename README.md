@@ -51,4 +51,3 @@ The client will run on `http://localhost:5173`.
 - **Lessons**: Video (YouTube) and Document (PDF) support.
 - **Quizzes**: Teachers create quizzes; Students take them and get scores.
 - **Admin**: Dashboard to manage users and view analytics.
-
