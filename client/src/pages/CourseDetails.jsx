@@ -67,6 +67,14 @@ const CourseDetails = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
+            <div className="max-w-4xl mx-auto mb-6">
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 bg-white px-4 py-2 rounded-md shadow-sm border border-gray-200 transition-colors"
+                >
+                    &larr; Back to Dashboard
+                </button>
+            </div>
             <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
                 {course.thumbnail && (
                     <img src={course.thumbnail} alt={course.title} className="w-full h-64 object-cover" />
@@ -114,8 +122,8 @@ const CourseDetails = () => {
                                             <button
                                                 onClick={() => navigate(`/courses/${id}/lessons/${lesson._id}`)}
                                                 className={`font-semibold text-sm px-3 py-1 rounded transition-colors ${completedLessonIds.includes(lesson._id)
-                                                        ? 'text-green-600 border border-green-200 bg-green-50 hover:bg-green-100'
-                                                        : 'text-indigo-600 hover:text-indigo-800'
+                                                    ? 'text-green-600 border border-green-200 bg-green-50 hover:bg-green-100'
+                                                    : 'text-indigo-600 hover:text-indigo-800'
                                                     }`}
                                             >
                                                 {isTeacher ? 'Preview' : (completedLessonIds.includes(lesson._id) ? '✓ Completed' : 'Start')}

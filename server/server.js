@@ -43,6 +43,7 @@ app.use('/api/quizzes', require('./routes/quizRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/seed', require('./routes/seedRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/assistant', require('./routes/assistantRoutes'));
 
 const PORT = process.env.PORT || 5000;
 

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, User, CheckCircle, AlertTriangle } from 'lucide-react';
+import { BookOpen, User, CheckCircle, AlertTriangle, Search } from 'lucide-react';
 
-const CourseList = () => {
+const CourseList = ({ hideBackButton = false }) => {
     const [courses, setCourses] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [enrolledCourseIds, setEnrolledCourseIds] = useState([]); // Store IDs of enrolled courses
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -95,15 +96,49 @@ const CourseList = () => {
         </div>
     );
 
+    const filteredCourses = courses.filter(course =>
+        course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-            <h1 className="text-3xl font-bold mb-8 text-gray-800 flex items-center">
-                <BookOpen className="mr-3 text-indigo-600" />
-                Course Catalog
-            </h1>
+        <div className={`bg-gray-50 p-4 md:p-8 ${!hideBackButton ? 'min-h-screen' : ''}`}>
+            {!hideBackButton && (
+                <div className="mb-6">
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 bg-white px-4 py-2 rounded-md shadow-sm border border-gray-200 transition-colors"
+                    >
+                        &larr; Back to Dashboard
+                    </button>
+                </div>
+            )}
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center shrink-0">
+                    <BookOpen className="mr-3 text-indigo-600" />
+                    Course Catalog
+                </h1>
+
+                {/* Search Bar */}
+                <div className="relative w-full md:w-96 text-gray-600">
+                    <input
+                        className="w-full bg-white border-2 border-gray-200 h-12 px-5 pr-10 rounded-full text-sm focus:outline-none focus:border-indigo-500 shadow-sm transition-colors"
+                        type="search"
+                        name="search"
+                        placeholder="Search for courses..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <button type="submit" className="absolute right-0 top-0 mt-3 mr-4 focus:outline-none pointer-events-none">
+                        <Search className="h-6 w-6 text-gray-400" />
+                    </button>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {courses.length === 0 ? <p>No courses available at the moment.</p> : courses.map(course => {
+                {filteredCourses.length === 0 ? <p className="text-gray-500 col-span-full">No courses found matching your search.</p> : filteredCourses.map(course => {
                     const isEnrolled = enrolledCourseIds.includes(course._id);
 
                     return (

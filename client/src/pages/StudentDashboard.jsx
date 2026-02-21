@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Flame, BookOpen, Trophy, Clock, AlertCircle } from 'lucide-react';
+import { Flame, BookOpen, Trophy, Clock, AlertCircle, Sparkles, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import CourseList from './CourseList';
 
 const StudentDashboard = () => {
     const [dashboardData, setDashboardData] = useState(null);
+    const [allCourses, setAllCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const fetchData = async () => {
             try {
                 const token = localStorage.getItem('token');
                 if (!token) {
@@ -23,8 +26,13 @@ const StudentDashboard = () => {
                     }
                 };
 
-                const res = await axios.get('http://localhost:5000/api/users/dashboard', config);
-                setDashboardData(res.data);
+                const [dashboardRes, coursesRes] = await Promise.all([
+                    axios.get('http://localhost:5000/api/users/dashboard', config),
+                    axios.get('http://localhost:5000/api/courses')
+                ]);
+
+                setDashboardData(dashboardRes.data);
+                setAllCourses(coursesRes.data);
                 setLoading(false);
             } catch (err) {
                 console.error(err);
@@ -33,7 +41,7 @@ const StudentDashboard = () => {
             }
         };
 
-        fetchDashboardData();
+        fetchData();
     }, []);
 
     if (loading) {
@@ -59,6 +67,54 @@ const StudentDashboard = () => {
         );
     }
 
+    // --- Recommendation Logic ---
+    const getRecommendations = () => {
+        if (!dashboardData || !allCourses.length) return [];
+
+        const activeCourseIds = dashboardData.courseProgress?.map(cp => cp.id) || [];
+        const completedCourseIds = dashboardData.courseProgress?.filter(cp => cp.percentage === 100).map(cp => cp.id) || [];
+
+        // 1. Filter out courses the user is already enrolled in
+        let availableCourses = allCourses.filter(course => !activeCourseIds.includes(course._id));
+
+        // 2. Simple Rules Engine for Recommendations
+        const recommendations = [];
+
+        // Rule A: If finished Python, recommend Data Analytics or similar advanced topics
+        const hasFinishedPython = completedCourseIds.some(id => allCourses.find(c => c._id === id)?.title.toLowerCase().includes('python'));
+        if (hasFinishedPython) {
+            const dataCourse = availableCourses.find(c => c.title.toLowerCase().includes('data') || c.category.toLowerCase().includes('data'));
+            if (dataCourse) {
+                recommendations.push({ course: dataCourse, reason: 'Since you finished Python, try Data Analytics!' });
+                availableCourses = availableCourses.filter(c => c._id !== dataCourse._id); // Remove from pool
+            }
+        }
+
+        // Rule B: If they have taken a quiz recently, recommend a course in the same category
+        if (dashboardData.recentQuizzes?.length > 0) {
+            const recentQuizCourseTitle = dashboardData.recentQuizzes[0].courseTitle;
+            const recentCourse = allCourses.find(c => c.title === recentQuizCourseTitle);
+            if (recentCourse) {
+                const similarCourse = availableCourses.find(c => c.category === recentCourse.category);
+                if (similarCourse) {
+                    recommendations.push({ course: similarCourse, reason: `Because you studied ${recentCourse.category}` });
+                    availableCourses = availableCourses.filter(c => c._id !== similarCourse._id);
+                }
+            }
+        }
+
+        // Rule C: Fill the rest with popular/random courses (up to 4 max)
+        while (recommendations.length < 4 && availableCourses.length > 0) {
+            const randomCourse = availableCourses[Math.floor(Math.random() * availableCourses.length)];
+            recommendations.push({ course: randomCourse, reason: 'Highly rated by other students' });
+            availableCourses = availableCourses.filter(c => c._id !== randomCourse._id);
+        }
+
+        return recommendations;
+    };
+
+    const recommendedCourses = getRecommendations();
+
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
             <h1 className="text-3xl font-bold text-gray-800 mb-8">My Learning Dashboard</h1>
@@ -78,7 +134,7 @@ const StudentDashboard = () => {
                     </div>
                 </div>
 
-                {/* Course Completion Summary Card (Optional Summary) */}
+                {/* Course Completion Summary Card */}
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-blue-100 flex items-center space-x-4">
                     <div className="bg-blue-100 p-4 rounded-full">
                         <BookOpen className="h-8 w-8 text-blue-500" />
@@ -90,7 +146,7 @@ const StudentDashboard = () => {
                     </div>
                 </div>
 
-                {/* Total Quizzes Card (Optional Summary) */}
+                {/* Total Quizzes Card */}
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-purple-100 flex items-center space-x-4">
                     <div className="bg-purple-100 p-4 rounded-full">
                         <Trophy className="h-8 w-8 text-purple-500" />
@@ -98,7 +154,6 @@ const StudentDashboard = () => {
                     <div>
                         <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">Quizzes Taken</p>
                         <h2 className="text-3xl font-bold text-gray-900">{dashboardData?.recentQuizzes?.length || 0}</h2>
-                        {/* Note: This is just recent quizzes length, cleaner to show total but relying on recent for now */}
                         <p className="text-xs text-gray-400 mt-1">Test your knowledge</p>
                     </div>
                 </div>
@@ -197,6 +252,79 @@ const StudentDashboard = () => {
                 </div>
 
             </div>
+
+            {/* Recommended For You Section */}
+            {recommendedCourses.length > 0 && (
+                <div className="mt-12 bg-indigo-50 rounded-xl shadow-sm border border-indigo-100 p-6">
+                    <div className="flex items-center justify-between mb-6 relative">
+                        <h3 className="text-2xl font-bold text-indigo-900 flex items-center">
+                            <Sparkles className="h-6 w-6 mr-2 text-yellow-500" />
+                            Recommended for You
+                        </h3>
+                    </div>
+
+                    {/* Horizontal Scrolling Container */}
+                    <div className="flex overflow-x-auto pb-6 gap-6 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {/* 
+                            Inline style for hide-scrollbar fallback. 
+                            If you have tailwind plugin for it, you can remove the inline styles.
+                        */}
+                        <style>{`
+                            .hide-scrollbar::-webkit-scrollbar {
+                                display: none;
+                            }
+                        `}</style>
+                        {recommendedCourses.map((item, index) => (
+                            <div key={item.course._id || index} className="snap-start shrink-0 w-80 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col group relative">
+
+                                {/* Tooltip "Why this course?" */}
+                                <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <div className="bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg max-w-[200px] pointer-events-none">
+                                        <span className="font-bold block mb-0.5 text-indigo-300">Why this course?</span>
+                                        {item.reason}
+                                    </div>
+                                </div>
+                                <div className="absolute top-2 left-2 z-0 opacity-100 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none">
+                                    <div className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded shadow-sm">
+                                        Hover to see why
+                                    </div>
+                                </div>
+
+                                <div className="h-40 bg-gray-200 relative overflow-hidden">
+                                    {item.course.thumbnail ? (
+                                        <img
+                                            src={item.course.thumbnail}
+                                            alt={item.course.title}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300">
+                                            <BookOpen size={48} />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-5 flex-1 flex flex-col">
+                                    <h4 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2">{item.course.title}</h4>
+                                    <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">{item.course.description}</p>
+                                    <Link
+                                        to={`/courses/${item.course._id}`}
+                                        className="mt-auto w-full flex items-center justify-center bg-indigo-50 text-indigo-700 font-semibold py-2 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
+                                    >
+                                        View Course <ChevronRight size={16} className="ml-1" />
+                                    </Link>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Added Course Catalog inline */}
+            <div className="mt-12 rounded-xl shadow-sm bg-white border border-gray-100 overflow-hidden">
+                <CourseList hideBackButton={true} />
+            </div>
+
         </div>
     );
 };
