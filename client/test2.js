@@ -1,0 +1,1 @@
+const ReactPlayer = require('react-player'); console.log(ReactPlayer);

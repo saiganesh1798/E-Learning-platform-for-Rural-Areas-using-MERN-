@@ -15,7 +15,7 @@ const CreateCourse = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:5000/api/courses', formData);
+            await axios.post('http://127.0.0.1:5000/api/courses', formData);
             navigate('/dashboard');
         } catch (err) {
             console.error('Error creating course', err);

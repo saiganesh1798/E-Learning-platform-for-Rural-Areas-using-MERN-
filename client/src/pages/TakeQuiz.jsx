@@ -13,7 +13,7 @@ const TakeQuiz = () => {
     useEffect(() => {
         const fetchQuiz = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/quizzes/${quizId}`);
+                const res = await axios.get(`http://127.0.0.1:5000/api/quizzes/${quizId}`);
                 setQuiz(res.data);
                 setLoading(false);
             } catch (err) {
@@ -33,7 +33,7 @@ const TakeQuiz = () => {
         const answersArray = quiz.questions.map((_, i) => answers[i] ?? -1);
 
         try {
-            const res = await axios.post(`http://localhost:5000/api/quizzes/${quizId}/submit`, { answers: answersArray });
+            const res = await axios.post(`http://127.0.0.1:5000/api/quizzes/${quizId}/submit`, { answers: answersArray });
             setResult(res.data);
         } catch (err) {
             console.error(err);

@@ -29,6 +29,35 @@ exports.createQuiz = async (req, res) => {
     }
 };
 
+// @route   PUT api/quizzes/:id
+// @desc    Update an existing quiz
+// @access  Teacher
+exports.updateQuiz = async (req, res) => {
+    const { title, questions } = req.body;
+    try {
+        let quiz = await Quiz.findById(req.params.id);
+        if (!quiz) return res.status(404).json({ msg: 'Quiz not found' });
+
+        const course = await Course.findById(quiz.course);
+        if (!course) return res.status(404).json({ msg: 'Associated course not found' });
+
+        if (course.teacher.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        quiz = await Quiz.findByIdAndUpdate(
+            req.params.id,
+            { $set: { title, questions } },
+            { new: true }
+        );
+
+        res.json(quiz);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 // @route   GET api/quizzes/course/:courseId
 // @desc    Get all quizzes for a course
 // @access  Public (or Enrolled Check ideally)

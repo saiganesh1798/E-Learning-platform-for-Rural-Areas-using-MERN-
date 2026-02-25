@@ -1,5 +1,7 @@
 const Course = require('../models/Course');
 const User = require('../models/User');
+const Quiz = require('../models/Quiz');
+const sendEmail = require('../utils/sendEmail');
 
 // @route   POST api/courses
 // @desc    Create a new course
@@ -24,15 +26,47 @@ exports.createCourse = async (req, res) => {
     }
 };
 
+// @route   PUT api/courses/:id
+// @desc    Update an existing course
+// @access  Teacher/Admin
+exports.updateCourse = async (req, res) => {
+    const { title, description, category, price, thumbnail } = req.body;
+    try {
+        let course = await Course.findById(req.params.id);
+
+        if (!course) {
+            return res.status(404).json({ msg: 'Course not found' });
+        }
+
+        // Make sure user is course teacher
+        if (course.teacher.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(401).json({ msg: 'User not authorized' });
+        }
+
+        course = await Course.findByIdAndUpdate(
+            req.params.id,
+            { $set: { title, description, category, price, thumbnail } },
+            { new: true }
+        );
+
+        res.json(course);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
 // @route   GET api/courses
 // @desc    Get all courses
 // @access  Public
 exports.getAllCourses = async (req, res) => {
     try {
+        console.log('Fetching all courses');
         const courses = await Course.find().populate('teacher', 'name');
+        console.log('Found courses:', courses.length);
         res.json(courses);
     } catch (err) {
-        console.error(err.message);
+        console.error('Error in getAllCourses:', err.message);
         res.status(500).send('Server Error');
     }
 };
@@ -118,7 +152,7 @@ exports.getMyCourses = async (req, res) => {
 // @desc    Add a lesson to a course
 // @access  Teacher
 exports.addLesson = async (req, res) => {
-    const { title, url, type } = req.body;
+    const { title, url, type, interactiveQuizzes } = req.body;
     try {
         const course = await Course.findById(req.params.id);
         if (!course) {
@@ -133,10 +167,48 @@ exports.addLesson = async (req, res) => {
         const newLesson = {
             title,
             url,
-            type // 'video' or 'document'
+            type, // 'video' or 'document'
+            interactiveQuizzes: interactiveQuizzes || []
         };
 
         course.lessons.push(newLesson);
+        await course.save();
+
+        res.json(course.lessons);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @route   PUT api/courses/:id/lessons/:lessonId
+// @desc    Update a lesson in a course
+// @access  Teacher
+exports.updateLesson = async (req, res) => {
+    const { title, url, type, interactiveQuizzes } = req.body;
+    try {
+        const course = await Course.findById(req.params.id);
+        if (!course) {
+            return res.status(404).json({ msg: 'Course not found' });
+        }
+
+        // Make sure user is course teacher
+        if (course.teacher.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'User not authorized' });
+        }
+
+        const lesson = course.lessons.find((l) => l._id.toString() === req.params.lessonId);
+
+        if (!lesson) {
+            return res.status(404).json({ msg: 'Lesson not found' });
+        }
+
+        // Update fields if provided
+        if (title) lesson.title = title;
+        if (url) lesson.url = url;
+        if (type) lesson.type = type;
+        if (interactiveQuizzes) lesson.interactiveQuizzes = interactiveQuizzes;
+
         await course.save();
 
         res.json(course.lessons);
@@ -182,6 +254,9 @@ exports.getTeacherAnalytics = async (req, res) => {
         let progressCount = 0;
         const studentPerformance = [];
 
+        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
+
         usersWithProgress.forEach(student => {
             // Filter progress for ONLY this teacher's courses
             const relevantProgress = student.progress.filter(p =>
@@ -205,6 +280,8 @@ exports.getTeacherAnalytics = async (req, res) => {
                     courseTitle: course.title,
                     progress: percentage
                 });
+
+
             });
         });
 
@@ -219,6 +296,45 @@ exports.getTeacherAnalytics = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+
+// @route   DELETE api/courses/:id
+// @desc    Delete a course
+// @access  Teacher (Owner only)
+exports.deleteCourse = async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+
+        if (!course) {
+            return res.status(404).json({ msg: 'Course not found' });
+        }
+
+        // Check user ownership
+        if (course.teacher.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'User not authorized to delete this course' });
+        }
+
+        // 1. Delete associated quizzes
+        await Quiz.deleteMany({ course: req.params.id });
+
+        // 2. Remove course from student progress records
+        await User.updateMany(
+            { 'progress.courseId': req.params.id },
+            { $pull: { progress: { courseId: req.params.id } } }
+        );
+
+        // 3. Delete the course itself
+        await Course.findByIdAndDelete(req.params.id);
+
+        res.json({ msg: 'Course removed successfully' });
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ msg: 'Course not found' });
+        }
         res.status(500).send('Server Error');
     }
 };

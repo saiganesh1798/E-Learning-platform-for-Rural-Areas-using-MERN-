@@ -13,7 +13,7 @@ const TeacherApprovalTable = () => {
     const fetchTeachers = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/api/admin/users', {
+            const res = await axios.get('http://127.0.0.1:5000/api/admin/users', {
                 headers: { 'x-auth-token': token }
             });
             // Filter only pending teachers
@@ -32,7 +32,7 @@ const TeacherApprovalTable = () => {
             // Optimistic UI Update
             setTeachers(teachers.filter(teacher => teacher._id !== id));
 
-            await axios.patch(`http://localhost:5000/api/admin/approve-teacher/${id}`,
+            await axios.patch(`http://127.0.0.1:5000/api/admin/approve-teacher/${id}`,
                 { status },
                 { headers: { 'x-auth-token': token } }
             );

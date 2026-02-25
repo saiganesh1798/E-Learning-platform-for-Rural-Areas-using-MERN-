@@ -33,7 +33,14 @@ const CourseSchema = new mongoose.Schema({
     lessons: [{ // Simplified reference for now, detailed model later
         title: String,
         url: String,
-        type: { type: String, enum: ['video', 'document', 'quiz'] }
+        type: { type: String, enum: ['video', 'document', 'quiz'] },
+        interactiveQuizzes: [{
+            timestamp: Number,
+            question: String,
+            options: [String],
+            correctOptionIndex: Number,
+            explanation: String
+        }]
     }],
     createdAt: {
         type: Date,

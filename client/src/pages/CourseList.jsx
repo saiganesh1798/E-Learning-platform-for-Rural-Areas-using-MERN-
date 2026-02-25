@@ -17,14 +17,14 @@ const CourseList = ({ hideBackButton = false }) => {
         const fetchData = async () => {
             try {
                 // Fetch public courses
-                const coursesRes = await axios.get('http://localhost:5000/api/courses');
+                const coursesRes = await axios.get('http://127.0.0.1:5000/api/courses');
 
                 // Fetch user data to see enrolled courses (if logged in)
                 const token = localStorage.getItem('token');
                 if (token) {
                     const config = { headers: { 'x-auth-token': token } };
                     // We can use the dashboard endpoint which has progress/enrolled info
-                    const dashboardRes = await axios.get('http://localhost:5000/api/users/dashboard', config);
+                    const dashboardRes = await axios.get('http://127.0.0.1:5000/api/users/dashboard', config);
                     // Extract enrolled course IDs from the courseProgress array
                     const ids = dashboardRes.data.courseProgress.map(cp => cp.id);
                     setEnrolledCourseIds(ids);
@@ -60,7 +60,7 @@ const CourseList = ({ hideBackButton = false }) => {
                 }
             };
 
-            await axios.post(`http://localhost:5000/api/courses/enroll/${enrollModal.courseId}`, {}, config);
+            await axios.post(`http://127.0.0.1:5000/api/courses/enroll/${enrollModal.courseId}`, {}, config);
 
             setEnrollModal({ show: false, courseId: null, courseTitle: '' });
             alert('Successfully Enrolled!');
@@ -103,12 +103,12 @@ const CourseList = ({ hideBackButton = false }) => {
     );
 
     return (
-        <div className={`bg-gray-50 p-4 md:p-8 ${!hideBackButton ? 'min-h-screen' : ''}`}>
+        <div className={`bg-gray-50 dark:bg-gray-900 p-4 md:p-8 transition-colors ${!hideBackButton ? 'min-h-screen' : ''}`}>
             {!hideBackButton && (
                 <div className="mb-6">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 bg-white px-4 py-2 rounded-md shadow-sm border border-gray-200 transition-colors"
+                        className="inline-flex items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-white dark:bg-gray-800 px-4 py-2 rounded-md shadow-sm border border-gray-200 dark:border-gray-700 transition-colors"
                     >
                         &larr; Back to Dashboard
                     </button>
@@ -116,15 +116,15 @@ const CourseList = ({ hideBackButton = false }) => {
             )}
 
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <h1 className="text-3xl font-bold text-gray-800 flex items-center shrink-0">
-                    <BookOpen className="mr-3 text-indigo-600" />
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center shrink-0">
+                    <BookOpen className="mr-3 text-indigo-600 dark:text-indigo-400" />
                     Course Catalog
                 </h1>
 
                 {/* Search Bar */}
-                <div className="relative w-full md:w-96 text-gray-600">
+                <div className="relative w-full md:w-96 text-gray-600 dark:text-gray-300">
                     <input
-                        className="w-full bg-white border-2 border-gray-200 h-12 px-5 pr-10 rounded-full text-sm focus:outline-none focus:border-indigo-500 shadow-sm transition-colors"
+                        className="w-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 h-12 px-5 pr-10 rounded-full text-sm focus:outline-none focus:border-indigo-500 dark:focus:border-indigo-400 shadow-sm transition-colors"
                         type="search"
                         name="search"
                         placeholder="Search for courses..."
@@ -142,9 +142,9 @@ const CourseList = ({ hideBackButton = false }) => {
                     const isEnrolled = enrolledCourseIds.includes(course._id);
 
                     return (
-                        <div key={course._id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-all duration-300 flex flex-col h-full">
+                        <div key={course._id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300 flex flex-col h-full opacity-100">
                             {/* Thumbnail - CSS "Low Res" simulation or just standard optimization */}
-                            <div className="h-48 bg-gray-200 relative overflow-hidden">
+                            <div className="h-48 bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
                                 {course.thumbnail ? (
                                     <img
                                         src={course.thumbnail}
@@ -153,21 +153,21 @@ const CourseList = ({ hideBackButton = false }) => {
                                         loading="lazy" // Native lazy loading for performance
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300">
+                                    <div className="w-full h-full flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-300 dark:text-indigo-500">
                                         <BookOpen size={48} />
                                     </div>
                                 )}
-                                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-indigo-700 uppercase tracking-wide">
+                                <div className="absolute top-2 right-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">
                                     {course.category}
                                 </div>
                             </div>
 
                             <div className="p-6 flex-grow flex flex-col justify-between">
                                 <div>
-                                    <h2 className="text-xl font-bold mb-2 text-gray-800 line-clamp-2">{course.title}</h2>
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{course.description}</p>
+                                    <h2 className="text-xl font-bold mb-2 text-gray-800 dark:text-white line-clamp-2">{course.title}</h2>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3">{course.description}</p>
 
-                                    <div className="flex items-center mb-4 text-sm text-gray-500">
+                                    <div className="flex items-center mb-4 text-sm text-gray-500 dark:text-gray-400">
                                         <User size={16} className="mr-1" />
                                         <span>{course.teacher?.name || 'Instructor'}</span>
                                     </div>
@@ -176,14 +176,14 @@ const CourseList = ({ hideBackButton = false }) => {
                                 <div className="mt-4 flex gap-3">
                                     <Link
                                         to={`/courses/${course._id}`}
-                                        className="flex-1 text-center border border-indigo-600 text-indigo-600 py-2 rounded-lg hover:bg-indigo-50 font-medium transition-colors"
+                                        className="flex-1 text-center border border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 py-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-medium transition-colors"
                                     >
                                         Details
                                     </Link>
                                     {isEnrolled ? (
                                         <Link
                                             to={`/courses/${course._id}`} // Or directly to first lesson if possible. For now, details/course page is fine, which usually has "Start"
-                                            className="flex-1 text-center border-2 border-green-500 text-green-600 py-2 rounded-lg hover:bg-green-50 font-medium shadow-sm transition-colors flex items-center justify-center"
+                                            className="flex-1 text-center border-2 border-green-500 text-green-600 dark:border-green-400 dark:text-green-400 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium shadow-sm transition-colors flex items-center justify-center"
                                         >
                                             <CheckCircle size={16} className="mr-1" />
                                             Go to Course
@@ -206,19 +206,19 @@ const CourseList = ({ hideBackButton = false }) => {
             {/* Confirmation Modal */}
             {enrollModal.show && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm">
-                    <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 transform transition-all scale-100 opacity-100">
-                        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 mx-auto mb-4">
-                            <AlertTriangle className="text-indigo-600 h-6 w-6" />
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6 transform transition-all scale-100 opacity-100">
+                        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 mx-auto mb-4">
+                            <AlertTriangle className="text-indigo-600 dark:text-indigo-400 h-6 w-6" />
                         </div>
-                        <h3 className="text-lg leading-6 font-medium text-gray-900 text-center mb-2">Confirm Enrollment</h3>
-                        <p className="text-sm text-gray-500 text-center mb-6">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white text-center mb-2">Confirm Enrollment</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-300 text-center mb-6">
                             Are you sure you want to enroll in <strong>{enrollModal.courseTitle}</strong>?
-                            <br /><span className="text-xs text-gray-400 mt-1 block">(This will add the course to your learning dashboard)</span>
+                            <br /><span className="text-xs text-gray-400 dark:text-gray-500 mt-1 block">(This will add the course to your learning dashboard)</span>
                         </p>
                         <div className="flex space-x-3">
                             <button
                                 onClick={() => setEnrollModal({ show: false, courseId: null, courseTitle: '' })}
-                                className="flex-1 bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 font-medium"
+                                className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition-colors"
                             >
                                 Cancel
                             </button>

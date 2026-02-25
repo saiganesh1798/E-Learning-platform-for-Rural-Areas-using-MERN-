@@ -1,14 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast, { Toaster } from 'react-hot-toast';
 
-const CreateQuiz = () => {
-    const { courseId } = useParams();
+const EditQuiz = () => {
+    const { courseId, quizId } = useParams();
     const navigate = useNavigate();
     const [title, setTitle] = useState('');
     const [questions, setQuestions] = useState([
         { questionText: '', options: ['', '', '', ''], correctOptionIndex: 0 }
     ]);
+
+    useEffect(() => {
+        const fetchQuiz = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const config = { headers: { 'x-auth-token': token } };
+                const res = await axios.get(`http://127.0.0.1:5000/api/quizzes/${quizId}`, config);
+                setTitle(res.data.title);
+                setQuestions(res.data.questions);
+            } catch (err) {
+                console.error(err);
+                toast.error('Failed to load quiz data');
+            }
+        };
+        fetchQuiz();
+    }, [quizId]);
 
     const handleQuestionChange = (index, field, value) => {
         const newQuestions = [...questions];
@@ -33,24 +50,40 @@ const CreateQuiz = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation check for empty questions or options
+        if (!title.trim()) return toast.error("Title is required");
+        for (const q of questions) {
+            if (!q.questionText.trim()) return toast.error("All questions must have text");
+            for (const opt of q.options) {
+                if (!opt.trim()) return toast.error("All options must have text");
+            }
+        }
+
         try {
-            await axios.post('http://127.0.0.1:5000/api/quizzes', {
+            const token = localStorage.getItem('token');
+            const config = { headers: { 'x-auth-token': token } };
+            await axios.put(`http://127.0.0.1:5000/api/quizzes/${quizId}`, {
                 title,
                 courseId,
                 questions
-            });
-            alert('Quiz created successfully!');
-            navigate(`/courses/${courseId}`);
+            }, config);
+            toast.success('Quiz updated successfully!');
+            setTimeout(() => navigate(`/courses/${courseId}`), 1000);
         } catch (err) {
             console.error(err);
-            alert('Failed to create quiz');
+            toast.error('Failed to update quiz');
         }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
+            <Toaster position="top-right" />
             <div className="mx-auto max-w-3xl bg-white p-8 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Create Quiz</h2>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Edit Quiz</h2>
+                    <button onClick={() => navigate(`/courses/${courseId}`)} className="text-gray-500 hover:text-gray-800">Cancel</button>
+                </div>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-6">
                         <label className="block text-gray-700 font-bold mb-2">Quiz Title</label>
@@ -119,7 +152,7 @@ const CreateQuiz = () => {
                         type="submit"
                         className="block w-full bg-indigo-600 text-white px-4 py-3 rounded hover:bg-indigo-700 font-bold"
                     >
-                        Save Quiz
+                        Save Quiz Changes
                     </button>
                 </form>
             </div>
@@ -127,4 +160,4 @@ const CreateQuiz = () => {
     );
 };
 
-export default CreateQuiz;
+export default EditQuiz;

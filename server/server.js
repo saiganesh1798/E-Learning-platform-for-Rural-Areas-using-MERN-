@@ -34,6 +34,12 @@ setTimeout(seedAdmin, 2000);
 
 const app = express();
 
+// Request Logger
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
 app.use(express.json());
 app.use(cors());
 
@@ -44,6 +50,8 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/seed', require('./routes/seedRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/assistant', require('./routes/assistantRoutes'));
+app.use('/api/snippets', require('./routes/snippetRoutes'));
+app.use('/api/courses/:courseId/discussions', require('./routes/discussionRoutes'));
 
 const PORT = process.env.PORT || 5000;
 

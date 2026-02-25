@@ -89,3 +89,78 @@ exports.getAnalytics = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+// @route   GET api/admin/discussions
+// @desc    Get all discussions globally
+// @access  Admin
+exports.getAllDiscussions = async (req, res) => {
+    try {
+        const courses = await Course.find({ 'discussions.0': { $exists: true } })
+            .populate('discussions.user', 'name email profilePicture')
+            .populate('discussions.replies.user', 'name email profilePicture')
+            .select('title discussions');
+
+        let allDiscussions = [];
+        courses.forEach(course => {
+            course.discussions.forEach(discussion => {
+                allDiscussions.push({
+                    courseId: course._id,
+                    courseTitle: course.title,
+                    discussionId: discussion._id,
+                    user: discussion.user,
+                    text: discussion.text,
+                    isTeacher: discussion.isTeacher,
+                    createdAt: discussion.createdAt,
+                    replies: discussion.replies
+                });
+            });
+        });
+
+        // Sort by newest first globally
+        allDiscussions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(allDiscussions);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @route   DELETE api/admin/discussions/:courseId/:discussionId
+// @desc    Delete a discussion thread
+// @access  Admin
+exports.deleteDiscussion = async (req, res) => {
+    try {
+        const { courseId, discussionId } = req.params;
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ msg: 'Course not found' });
+
+        course.discussions = course.discussions.filter(d => d._id.toString() !== discussionId);
+        await course.save();
+        res.json({ msg: 'Discussion deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// @route   DELETE api/admin/discussions/:courseId/:discussionId/replies/:replyId
+// @desc    Delete a discussion reply
+// @access  Admin
+exports.deleteReply = async (req, res) => {
+    try {
+        const { courseId, discussionId, replyId } = req.params;
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ msg: 'Course not found' });
+
+        const discussion = course.discussions.id(discussionId);
+        if (!discussion) return res.status(404).json({ msg: 'Discussion not found' });
+
+        discussion.replies = discussion.replies.filter(r => r._id.toString() !== replyId);
+        await course.save();
+        res.json({ msg: 'Reply deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};

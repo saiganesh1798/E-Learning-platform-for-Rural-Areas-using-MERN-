@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+
 const TeacherDashboard = () => {
     const { user } = useAuth();
     const [analytics, setAnalytics] = useState({
@@ -14,6 +15,7 @@ const TeacherDashboard = () => {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [courseToDelete, setCourseToDelete] = useState(null); // Custom modal state
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -22,12 +24,14 @@ const TeacherDashboard = () => {
                 const config = { headers: { 'x-auth-token': token } };
 
                 // Fetch Analytics
-                const analyticsRes = await axios.get('http://localhost:5000/api/courses/teacher/analytics', config);
+                const analyticsRes = await axios.get('http://127.0.0.1:5000/api/courses/teacher/analytics', config);
                 setAnalytics(analyticsRes.data);
 
                 // Fetch Teacher's Courses
-                const coursesRes = await axios.get('http://localhost:5000/api/courses/my-courses', config);
+                const coursesRes = await axios.get('http://127.0.0.1:5000/api/courses/my-courses', config);
                 setCourses(coursesRes.data);
+
+
 
                 setLoading(false);
             } catch (err) {
@@ -39,17 +43,27 @@ const TeacherDashboard = () => {
         fetchDashboardData();
     }, []);
 
-    const handleDeleteCourse = async (courseId) => {
-        if (window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-            try {
-                // Ideally implement delete endpoint in backend, for now just UI alert or implementation if exists
-                // await axios.delete(`http://localhost:5000/api/courses/${courseId}`, config);
-                alert('Delete functionality to be implemented in backend completely.');
-            } catch (err) {
-                console.error(err);
-            }
+    const handleDeleteCourse = async () => {
+        if (!courseToDelete) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const config = { headers: { 'x-auth-token': token } };
+
+            await axios.delete(`http://127.0.0.1:5000/api/courses/${courseToDelete}`, config);
+
+            alert('Course deleted successfully.');
+            setCourseToDelete(null);
+            // Trigger a re-fetch of dashboard data to update the UI
+            window.location.reload();
+        } catch (err) {
+            console.error('Error deleting course:', err);
+            alert('Failed to delete course. Please try again.');
+            setCourseToDelete(null);
         }
     };
+
+
 
     const filteredStudents = analytics.studentPerformance.filter(student =>
         student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -143,6 +157,8 @@ const TeacherDashboard = () => {
                             </div>
                         </div>
 
+
+
                         {/* Two Column Layout: My Courses & Student Progress */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -185,8 +201,8 @@ const TeacherDashboard = () => {
                                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                                             </Link>
                                                             <button
-                                                                onClick={() => handleDeleteCourse(course._id)}
-                                                                className="text-gray-500 hover:text-red-500 p-1"
+                                                                onClick={() => setCourseToDelete(course._id)}
+                                                                className="text-gray-500 hover:text-red-500 p-1 tooltip"
                                                                 title="Delete Course"
                                                             >
                                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -239,7 +255,7 @@ const TeacherDashboard = () => {
                                                                 <div className="w-full bg-gray-200 rounded-full h-2 mr-3">
                                                                     <div
                                                                         className={`h-2 rounded-full ${student.progress === 100 ? 'bg-green-500' :
-                                                                                student.progress > 50 ? 'bg-indigo-500' : 'bg-yellow-500'
+                                                                            student.progress > 50 ? 'bg-indigo-500' : 'bg-yellow-500'
                                                                             }`}
                                                                         style={{ width: `${student.progress}%` }}
                                                                     ></div>
@@ -259,6 +275,37 @@ const TeacherDashboard = () => {
                     </>
                 )}
             </div>
+
+            {/* Custom Delete Confirmation Modal */}
+            {courseToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity">
+                    <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl transform transition-all">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                            <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 text-center mb-2">Delete Course</h3>
+                        <p className="text-sm text-gray-500 text-center mb-6">
+                            Are you sure you want to delete this course? All of its data, including student progress, will be permanently removed. This action cannot be undone.
+                        </p>
+                        <div className="flex justify-center space-x-3">
+                            <button
+                                onClick={() => setCourseToDelete(null)}
+                                className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteCourse}
+                                className="px-4 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                                Delete Course
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

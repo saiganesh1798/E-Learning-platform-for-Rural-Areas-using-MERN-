@@ -9,7 +9,7 @@ const QuizList = ({ courseId, isTeacher }) => {
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const res = await axios.get(`http://localhost:5000/api/quizzes/course/${courseId}`);
+                const res = await axios.get(`http://127.0.0.1:5000/api/quizzes/course/${courseId}`);
                 setQuizzes(res.data);
             } catch (err) {
                 console.error(err);
@@ -40,12 +40,22 @@ const QuizList = ({ courseId, isTeacher }) => {
                                 <span className="mr-3 p-2 rounded-full bg-yellow-100 text-yellow-600">❓</span>
                                 <span className="font-medium text-gray-700">{quiz.title}</span>
                             </div>
-                            <button
-                                onClick={() => navigate(`/quizzes/${quiz._id}`)}
-                                className="text-indigo-600 hover:text-indigo-800 font-semibold text-sm"
-                            >
-                                {isTeacher ? 'View' : 'Take Quiz'}
-                            </button>
+                            <div className="flex gap-3">
+                                {isTeacher && (
+                                    <button
+                                        onClick={() => navigate(`/courses/${courseId}/edit-quiz/${quiz._id}`)}
+                                        className="text-gray-500 hover:text-indigo-600 font-semibold text-sm transition-colors"
+                                    >
+                                        Edit
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => navigate(`/quizzes/${quiz._id}`)}
+                                    className="text-indigo-600 hover:text-indigo-800 font-semibold text-sm transition-colors"
+                                >
+                                    {isTeacher ? 'View' : 'Take Quiz'}
+                                </button>
+                            </div>
                         </li>
                     ))}
                 </ul>

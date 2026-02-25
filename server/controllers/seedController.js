@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Course = require('../models/Course');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
 exports.seedDatabase = async (req, res) => {
     try {
@@ -28,7 +29,19 @@ exports.seedDatabase = async (req, res) => {
             password: hasedPassword,
             role: 'teacher',
             status: 'active',
+            isApproved: true,
+            approvalStatus: 'approved',
             bio: 'Expert in Mathematics and Science with 10 years of experience.'
+        });
+
+        const srikanth = new User({
+            name: 'srikanth',
+            email: 'srikanth@gmail.com',
+            password: hasedPassword,
+            role: 'teacher',
+            status: 'active',
+            isApproved: true,
+            approvalStatus: 'approved'
         });
 
         const student = new User({
@@ -39,8 +52,22 @@ exports.seedDatabase = async (req, res) => {
             status: 'active'
         });
 
+        const studentUsers = [
+            { name: 'saiganesh', email: 'saiganesh@example.com' },
+            { name: 'lohith', email: 'lohith@example.com' },
+            { name: 'Naveen', email: 'naveen@example.com' },
+            { name: 'Student User', email: 'user@example.com' },
+            { name: 'chikatimalla saiganesh', email: 'chika@example.com' }
+        ];
+
+        const createdStudents = await Promise.all(studentUsers.map(async s => {
+            const u = new User({ ...s, password: hasedPassword, role: 'student', status: 'active' });
+            return await u.save();
+        }));
+
         await admin.save();
         await teacher.save();
+        await srikanth.save();
         await student.save();
 
         // 2. Create Courses
@@ -79,9 +106,81 @@ exports.seedDatabase = async (req, res) => {
             }
         ];
 
-        await Course.insertMany(courses);
+        const srikanthCourses = [
+            {
+                title: 'The Introduction to Data Structures',
+                description: 'Master the basics of data structures including arrays, linked lists, and trees.',
+                category: 'Computer Science',
+                thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=600&auto=format&fit=crop',
+                price: 0,
+                teacher: srikanth._id,
+                enrolledStudents: createdStudents.map(s => s._id),
+                lessons: [{ title: 'Arrays 101', type: 'video', url: 'https://youtube.com/dummy1' }]
+            },
+            {
+                title: 'Python Full Course for Beginners',
+                description: 'Everything you need to know to start coding in Python today.',
+                category: 'Programming',
+                thumbnail: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=600&auto=format&fit=crop',
+                price: 0,
+                teacher: srikanth._id,
+                enrolledStudents: [createdStudents[0]._id],
+                lessons: [{ title: 'Python Setup', type: 'video', url: 'https://youtube.com/dummy2' }]
+            },
+            {
+                title: 'Computer Networks',
+                description: 'Deep dive into computer networking concepts and protocols.',
+                category: 'IT',
+                thumbnail: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?q=80&w=600&auto=format&fit=crop',
+                price: 0,
+                teacher: srikanth._id,
+                enrolledStudents: [createdStudents[0]._id, srikanth._id], // Self enrollment as seen in screenshot
+                lessons: [{ title: 'OSI Model', type: 'video', url: 'https://youtube.com/dummy3' }]
+            }
+        ];
 
-        res.json({ msg: 'Database Configured with Demo Data!', users: ['admin@example.com', 'teacher@example.com', 'student@example.com'], password: '123456' });
+        await Course.insertMany([...courses, ...srikanthCourses]);
+
+        // 3. Add progress for students so it shows on dashboard
+        const allCreatedStudents = [student, ...createdStudents, srikanth]; // srikanth is also enrolled in his own course Networks
+        const allCourses = await Course.find();
+
+        for (const s of allCreatedStudents) {
+            const enrolled = allCourses.filter(c => c.enrolledStudents.includes(s._id));
+            if (enrolled.length > 0) {
+                s.progress = enrolled.map(c => {
+                    const totalLessons = c.lessons ? c.lessons.length : 0;
+                    const randomProgress = Math.floor(Math.random() * 100);
+                    const completedLessons = [];
+
+                    if (totalLessons > 0) {
+                        const numCompleted = Math.floor((randomProgress / 100) * totalLessons);
+                        for (let i = 0; i < numCompleted; i++) {
+                            if (c.lessons[i]) {
+                                // Since lessons are subdocs without separate IDs in the schema shown, 
+                                // we'll use their index or just simulate IDs if needed.
+                                // Actually, UserSchema says ref: 'Lesson', but CourseSchema has them inline.
+                                // If they are inline, they have _id if they are subdocuments.
+                                completedLessons.push(c.lessons[i]._id);
+                            }
+                        }
+                    }
+
+                    return {
+                        courseId: c._id,
+                        completedLessons,
+                        quizScores: [{
+                            quizId: new mongoose.Types.ObjectId(), // Placeholder
+                            score: Math.floor(Math.random() * 40) + 60, // Passing score
+                            date: new Date()
+                        }]
+                    };
+                });
+                await s.save();
+            }
+        }
+
+        res.json({ msg: 'Database Configured with Demo Data!', users: ['admin@example.com', 'teacher@example.com', 'srikanth@gmail.com'], password: '123456' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error during seeding');

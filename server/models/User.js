@@ -19,6 +19,11 @@ const UserSchema = new mongoose.Schema({
         enum: ['student', 'teacher', 'admin'],
         default: 'student'
     },
+    theme: {
+        type: String,
+        enum: ['light', 'dark'],
+        default: 'light'
+    },
     profilePicture: {
         type: String,
         default: ''
@@ -57,6 +62,12 @@ const UserSchema = new mongoose.Schema({
         lastLoginDate: { type: Date }
     },
 
+    // Real-time Video Quiz Score
+    videoQuizScore: {
+        type: Number,
+        default: 0
+    },
+
     // Progress Tracking
     progress: [{
         courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
@@ -65,7 +76,8 @@ const UserSchema = new mongoose.Schema({
             quizId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz' },
             score: { type: Number },
             date: { type: Date, default: Date.now }
-        }]
+        }],
+        completedAt: { type: Date }
     }],
 
     createdAt: {

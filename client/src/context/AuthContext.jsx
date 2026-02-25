@@ -10,6 +10,14 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const applyTheme = (theme) => {
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    };
+
     useEffect(() => {
         const loadUser = async () => {
             const token = localStorage.getItem('token');
@@ -20,7 +28,11 @@ export const AuthProvider = ({ children }) => {
                 // But let's assume we decode or basic persist
                 // user data should be stored in local storage or fetched
                 const storedUser = localStorage.getItem('user');
-                if (storedUser) setUser(JSON.parse(storedUser));
+                if (storedUser) {
+                    const parsedUser = JSON.parse(storedUser);
+                    setUser(parsedUser);
+                    applyTheme(parsedUser.theme || 'light');
+                }
             }
             setLoading(false);
         };
@@ -29,11 +41,12 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+            const res = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
             localStorage.setItem('token', res.data.token);
             localStorage.setItem('user', JSON.stringify(res.data.user));
             axios.defaults.headers.common['x-auth-token'] = res.data.token;
             setUser(res.data.user);
+            applyTheme(res.data.user.theme || 'light');
             return { success: true };
         } catch (err) {
             console.error(err);
@@ -43,7 +56,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/register', userData);
+            const res = await axios.post('http://127.0.0.1:5000/api/auth/register', userData);
             localStorage.setItem('token', res.data.token);
 
             // Check if status is pending (e.g. for Teachers)
@@ -59,6 +72,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(user));
             axios.defaults.headers.common['x-auth-token'] = res.data.token;
             setUser(user);
+            applyTheme(user.theme || 'light');
             return { success: true };
         } catch (err) {
             return { success: false, error: err.response?.data?.msg || 'Registration failed' };
@@ -70,10 +84,30 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
         delete axios.defaults.headers.common['x-auth-token'];
         setUser(null);
+        applyTheme('light');
+    };
+
+    const toggleTheme = async () => {
+        if (!user) return;
+        const newTheme = user.theme === 'dark' ? 'light' : 'dark';
+        try {
+            // Update backend
+            const res = await axios.put('http://127.0.0.1:5000/api/users/theme', { theme: newTheme });
+
+            // Update local state and storage
+            const updatedUser = { ...user, theme: res.data.theme };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+
+            // Apply to document
+            applyTheme(res.data.theme);
+        } catch (err) {
+            console.error('Failed to update theme', err);
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, toggleTheme }}>
             {children}
         </AuthContext.Provider>
     );
